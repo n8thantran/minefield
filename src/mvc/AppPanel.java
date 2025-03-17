@@ -12,19 +12,30 @@ public class AppPanel extends JPanel implements Subscriber, ActionListener  {
     protected View view;
     protected JPanel controlPanel;
     private JFrame frame;
-    public static int FRAME_WIDTH = 500;
-    public static int FRAME_HEIGHT = 300;
+    public static int FRAME_WIDTH = 725;
+    public static int FRAME_HEIGHT = 550;
 
     public AppPanel(AppFactory factory) {
 
         // initialize fields here
+        this.factory = factory;
 
         frame = new SafeFrame();
+        frame.setTitle(factory.getTitle());
+        frame.setSize(FRAME_WIDTH, FRAME_HEIGHT);
+
+        setLayout(new BorderLayout());
+        model = factory.makeModel();
+        view = factory.makeView(model);
+        add(view, BorderLayout.CENTER);
+
+        controlPanel = new JPanel();
+        controlPanel.setBackground(Color.LIGHT_GRAY);
+        add(controlPanel, BorderLayout.WEST);
+
         Container cp = frame.getContentPane();
         cp.add(this);
         frame.setJMenuBar(createMenuBar());
-        frame.setTitle(factory.getTitle());
-        frame.setSize(FRAME_WIDTH, FRAME_HEIGHT);
     }
 
     public void display() { frame.setVisible(true); }
@@ -35,7 +46,9 @@ public class AppPanel extends JPanel implements Subscriber, ActionListener  {
 
     // called by file/open and file/new
     public void setModel(Model newModel) {
-        this.model.unsubscribe(this);
+        if (model != null) {
+            model.unsubscribe(this);
+        }
         this.model = newModel;
         this.model.subscribe(this);
         // view must also unsubscribe then resubscribe:
@@ -84,8 +97,11 @@ public class AppPanel extends JPanel implements Subscriber, ActionListener  {
                 Utilities.inform(factory.about());
             } else if (cmmd.equals("Help")) {
                 Utilities.inform(factory.getHelp());
-            } else { // must be from Edit menu
-                //???
+            } else {
+                Command editCommand = factory.makeEditCommand(model, cmmd, ae.getSource());
+                if (editCommand != null) {
+                    editCommand.execute();
+                }
             }
         } catch (Exception e) {
             handleException(e);
